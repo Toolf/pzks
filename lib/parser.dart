@@ -1,3 +1,10 @@
+import 'package:pzks/ast/binary_operation.dart';
+import 'package:pzks/ast/numconst.dart';
+import 'package:pzks/ast/unary_operation.dart';
+
+import 'ast/call.dart';
+import 'ast/expression.dart';
+import 'ast/variable.dart';
 import 'lexer.dart';
 
 class SyntaxError {
@@ -57,20 +64,21 @@ class Parser {
   final String code;
   final Lexer _lexer;
 
-  static const sumOp = ['+', '-'];
-  static const mulOp = ['*', '/'];
-  static const unaryOp = ['+', '-'];
+  static const sumOp = [TokenTag.PLUS, TokenTag.MINUS];
+  static const mulOp = [TokenTag.STAR, TokenTag.SLASH];
+  static const unaryOp = [TokenTag.PLUS, TokenTag.MINUS];
   final errors = [];
 
   final List<FunctionDeclaration> functions;
 
   Parser(this.code, [this.functions = const []]) : _lexer = Lexer(code);
 
-  parse() {
-    final peekBefore = _lexer.peek();
-    final expr = _parseExpression();
-    final peekAfter = _lexer.peek();
-    if (peekAfter.tag != TokenTag.EOF) {
+  validate() {
+    _lexer.reset();
+    var peekBefore = _lexer.peek();
+    final expr = _validateExpression();
+    var peekAfter = _lexer.peek();
+    while (peekAfter.tag != TokenTag.EOF) {
       if (peekBefore == peekAfter) {
         skipToken();
       } else {
@@ -84,8 +92,16 @@ class Parser {
           ),
         );
       }
-      parse();
+      peekBefore = _lexer.peek();
+      _validateExpression();
+      peekAfter = _lexer.peek();
     }
+    return expr;
+  }
+
+  Expression parse() {
+    _lexer.reset();
+    final expr = _parseExpression();
     return expr;
   }
 
@@ -140,43 +156,43 @@ class Parser {
     return functions.map((f) => f.name).toList().contains(name);
   }
 
-  _parseExpression() {
-    final l = _parseMulExpression();
-    while (sumOp.contains(_lexer.peek().value)) {
+  _validateExpression() {
+    final l = _validateMulExpression();
+    while (sumOp.contains(_lexer.peek().tag)) {
       final op = _lexer.nextToken();
-      final r = _parseMulExpression();
+      final r = _validateMulExpression();
     }
   }
 
-  _parseMulExpression() {
-    final l = _parseUnaryExpression();
-    while (mulOp.contains(_lexer.peek().value)) {
+  _validateMulExpression() {
+    final l = _validateUnaryExpression();
+    while (mulOp.contains(_lexer.peek().tag)) {
       final op = _lexer.nextToken();
-      final r = _parseUnaryExpression();
+      final r = _validateUnaryExpression();
     }
   }
 
-  _parseUnaryExpression() {
-    if (unaryOp.contains(_lexer.peek().value)) {
+  _validateUnaryExpression() {
+    if (unaryOp.contains(_lexer.peek().tag)) {
       final op = _lexer.nextToken();
-      final unaryExpr = _parseUnaryExpression();
+      final unaryExpr = _validateUnaryExpression();
     } else {
       _expected([TokenTag.LPAR, TokenTag.ID, TokenTag.NUMCONST]);
-      final factor = _parseFactor();
+      final factor = _validateFactor();
     }
   }
 
-  _parseFactor() {
+  _validateFactor() {
     var peek = _lexer.peek();
     if (peek.tag == TokenTag.LPAR) {
       _lexer.nextToken();
-      final expr = _parseExpression();
+      final expr = _validateExpression();
       _expected([TokenTag.RPAR]);
       _lexer.nextToken();
       return expr;
     }
     if (peek.tag == TokenTag.ID) {
-      final callOrId = _parseCallOrId();
+      final callOrId = _validateCallOrId();
       return callOrId;
     }
     if (peek.tag == TokenTag.NUMCONST) {
@@ -187,7 +203,7 @@ class Parser {
     // bad factor
   }
 
-  _parseCallOrId() {
+  _validateCallOrId() {
     final id = _lexer.nextToken();
     final peek = _lexer.peek();
     if (peek.tag == TokenTag.LPAR && !_isFunctionName(id.value)) {
@@ -207,20 +223,20 @@ class Parser {
       _lexer.nextToken();
       final peek = _lexer.peek();
       if (peek.tag != TokenTag.RPAR) {
-        final args = _parseArgs();
+        final argsCount = _validateArgs();
         final endPeek = _lexer.peek();
-        // if (args.length !=
-        //     functions.firstWhere((f) => id.value == f.name).args.length) {
-        //   errors.add(
-        //     SyntaxError(
-        //       "Invalid arguments count",
-        //       peek.row,
-        //       peek.col,
-        //       endPeek.row,
-        //       endPeek.col + endPeek.value.length,
-        //     ),
-        //   );
-        // }
+        if (argsCount !=
+            functions.firstWhere((f) => id.value == f.name).args.length) {
+          errors.add(
+            SyntaxError(
+              "Invalid arguments count",
+              peek.row,
+              peek.col,
+              endPeek.row,
+              endPeek.col + endPeek.value.length,
+            ),
+          );
+        }
       }
 
       _expected([TokenTag.RPAR]);
@@ -228,11 +244,88 @@ class Parser {
     }
   }
 
-  _parseArgs() {
-    final expr = _parseExpression();
+  int _validateArgs() {
+    int count = 1;
+    final expr = _validateExpression();
     while (_lexer.peek().tag == TokenTag.COMMA) {
       _lexer.nextToken();
-      final args = _parseExpression();
+      final args = _validateExpression();
+      count++;
     }
+    return count;
+  }
+
+  Expression _parseExpression() {
+    var l = _parseMulExpression();
+    while (sumOp.contains(_lexer.peek().tag)) {
+      final op = _lexer.nextToken().value;
+      final r = _parseMulExpression();
+      l = BinaryOperation(op, l, r);
+    }
+    return l;
+  }
+
+  Expression _parseMulExpression() {
+    var l = _parseUnaryExpression();
+    while (mulOp.contains(_lexer.peek().tag)) {
+      final op = _lexer.nextToken().value;
+      final r = _parseUnaryExpression();
+      l = BinaryOperation(op, l, r);
+    }
+    return l;
+  }
+
+  Expression _parseUnaryExpression() {
+    if (unaryOp.contains(_lexer.peek().tag)) {
+      final op = _lexer.nextToken().value;
+      final unaryExpr = _parseUnaryExpression();
+      return UnaryOperation(op, unaryExpr);
+    } else {
+      final factor = _parseFactor();
+      return factor;
+    }
+  }
+
+  Expression _parseFactor() {
+    var peek = _lexer.peek();
+    if (peek.tag == TokenTag.LPAR) {
+      _lexer.nextToken();
+      final expr = _parseExpression();
+      _lexer.nextToken();
+      return expr;
+    }
+    if (peek.tag == TokenTag.ID) {
+      final callOrId = _parseCallOrId();
+      return callOrId;
+    }
+    if (peek.tag == TokenTag.NUMCONST) {
+      final numconst = _lexer.nextToken().value;
+      return Numconst(double.parse(numconst));
+    }
+    throw Exception("Expected invalid validation");
+  }
+
+  Expression _parseCallOrId() {
+    final identifier = _lexer.nextToken().value;
+    if (_isFunctionName(identifier)) {
+      _lexer.nextToken();
+      var args = <Expression>[];
+      if (_lexer.peek().tag != TokenTag.RPAR) {
+        args = _parseArgs();
+      }
+
+      _lexer.nextToken();
+      return Call(identifier, args);
+    }
+    return Variable(identifier);
+  }
+
+  List<Expression> _parseArgs() {
+    final args = [_parseExpression()];
+    while (_lexer.peek().tag == TokenTag.COMMA) {
+      _lexer.nextToken();
+      args.add(_parseExpression());
+    }
+    return args;
   }
 }

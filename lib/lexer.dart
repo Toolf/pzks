@@ -120,6 +120,12 @@ class Lexer {
 
   Lexer(this.code);
 
+  void reset() {
+    row = 0;
+    col = 0;
+    index = 0;
+  }
+
   // Return next token without change internal state
   Token peek() {
     // save state

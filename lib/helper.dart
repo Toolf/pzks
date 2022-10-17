@@ -26,3 +26,10 @@ String highlight(String code, SyntaxError error) {
       " " * (error.fromCol) +
       error.message;
 }
+
+String centrize(String str, int len) {
+  if (str.length >= len) return str;
+  final r = (len - str.length) ~/ 2;
+  final l = len - str.length - r;
+  return " " * r + str + " " * l;
+}

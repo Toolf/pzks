@@ -8,7 +8,7 @@ void main() {
       final expression = ")5+3";
       // act
       final parser = Parser(expression);
-      parser.parse();
+      parser.validate();
       // assert
       final expectedErrors = [
         SyntaxError("Expected an identifier or expression", 0, 0, 0, 1),
@@ -21,7 +21,7 @@ void main() {
       final expression = "*5+3";
       // act
       final parser = Parser(expression);
-      parser.parse();
+      parser.validate();
       // assert
       final expectedErrors = [
         SyntaxError("Expected an identifier or expression", 0, 0, 0, 1),
@@ -34,7 +34,7 @@ void main() {
       final expression = "/5+3";
       // act
       final parser = Parser(expression);
-      parser.parse();
+      parser.validate();
       // assert
       final expectedErrors = [
         SyntaxError("Expected an identifier or expression", 0, 0, 0, 1),
@@ -50,7 +50,7 @@ void main() {
       final functions = <FunctionDeclaration>[];
       // act
       final parser = Parser(expression, functions);
-      parser.parse();
+      parser.validate();
       // assert
       final expectedErrors = [
         SyntaxError(
@@ -77,7 +77,7 @@ void main() {
       ];
       // act
       final parser = Parser(expression, functions);
-      parser.parse();
+      parser.validate();
       // assert
       final expectedErrors = [];
       expect(parser.errors, expectedErrors);
@@ -88,7 +88,7 @@ void main() {
       final expression = "3args";
       // act
       final parser = Parser(expression);
-      parser.parse();
+      parser.validate();
       // assert
       final expectedErrors = [
         SyntaxError(
@@ -107,7 +107,7 @@ void main() {
       final expression = "3.14.14";
       // act
       final parser = Parser(expression);
-      parser.parse();
+      parser.validate();
       // assert
       final expectedErrors = [
         SyntaxError(
@@ -135,7 +135,7 @@ void main() {
       final expression = "(a+3-7*2+2";
       // act
       final parser = Parser(expression);
-      parser.parse();
+      parser.validate();
       // assert
       final expectedErrors = [SyntaxError("Expected ')'", 0, 10, 0, 10)];
       expect(parser.errors, expectedErrors);
@@ -148,7 +148,7 @@ void main() {
       final expression = "7**7";
       // act
       final parser = Parser(expression);
-      parser.parse();
+      parser.validate();
       // assert
       final expectedErrors = [
         SyntaxError("Expected '(' or identifier or constant", 0, 2, 0, 3)
@@ -161,7 +161,7 @@ void main() {
       final expression = "(7)(7)";
       // act
       final parser = Parser(expression);
-      parser.parse();
+      parser.validate();
       // assert
       final expectedErrors = [SyntaxError("Expected operation", 0, 3, 0, 4)];
       expect(parser.errors, expectedErrors);
@@ -172,7 +172,7 @@ void main() {
       final expression = "(*3)";
       // act
       final parser = Parser(expression);
-      parser.parse();
+      parser.validate();
       // assert
       final expectedErrors = [
         SyntaxError("Expected '(' or identifier or constant", 0, 1, 0, 2)
@@ -187,7 +187,7 @@ void main() {
       final expression = "(b";
       // act
       final parser = Parser(expression);
-      parser.parse();
+      parser.validate();
       // assert
       final expectedErrors = [
         SyntaxError("Expected ')'", 0, 2, 0, 2),
@@ -200,7 +200,7 @@ void main() {
       final expression = "()";
       // act
       final parser = Parser(expression);
-      parser.parse();
+      parser.validate();
       // assert
       final expectedErrors = [
         SyntaxError("Expected '(' or identifier or constant", 0, 1, 0, 2),
