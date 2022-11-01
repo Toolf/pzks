@@ -9,4 +9,13 @@ class Variable implements Expression {
   String toString() {
     return identifier;
   }
+
+  @override
+  int get hashCode => identifier.hashCode;
+
+  @override
+  bool operator ==(Object other) {
+    if (other is! Variable) return false;
+    return other.identifier == identifier;
+  }
 }

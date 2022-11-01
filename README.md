@@ -34,3 +34,18 @@ factor = '(' expr ')' | call | id | numconst
 call = id '(' ')' | id '(' args ')' 
 args = expr (',' expr)*
 ```
+
+
+Комутативне і асоціативне
+a*b=b*a
+a+b=b+a
+(a*b)*c = a*(b*c)
+(a+b)+c = a+(b+c)
+
+a*b+a*c = a*(b+c)
+
+dateflow
++ 1
+- 2
+* 3
+/ 5

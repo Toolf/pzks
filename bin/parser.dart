@@ -22,7 +22,11 @@ main() {
     }
     if (parser.errors.isEmpty) {
       print("Errors not found");
-      print(parser.parse());
+      final expr = parser.parse();
+      final exprs = parser.genSimilar(expr);
+      for (var expr in exprs) {
+        print(expr);
+      }
     }
   } on LexerException catch (e) {
     // only for development needs

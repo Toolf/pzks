@@ -378,4 +378,91 @@ class Parser {
     }
     return args;
   }
+
+  Set<Expression> genSimilar(Expression expr) {
+    switch (expr.runtimeType) {
+      case BinaryOperation:
+        return _genSimilarBinaryOp(expr as BinaryOperation);
+      case Call:
+        return _genSimilarCall(expr as Call);
+      case Numconst:
+        return _genSimilarNumconst(expr as Numconst);
+      case UnaryOperation:
+        return _genSimilarUnaryOp(expr as UnaryOperation);
+      case Variable:
+        return _genSimilarVariable(expr as Variable);
+    }
+    return {expr};
+  }
+
+  Set<BinaryOperation> _genSimilarBinaryOp(BinaryOperation binaryOp) {
+    final lSimilars = genSimilar(binaryOp.left);
+    final rSimilars = genSimilar(binaryOp.right);
+
+    final res = <BinaryOperation>{};
+    for (var lSimilar in lSimilars) {
+      for (var rSimilar in rSimilars) {
+        res.add(BinaryOperation(binaryOp.operation, lSimilar, rSimilar));
+        // Комутативний
+        if (binaryOp.operation == '+' || binaryOp.operation == '*') {
+          res.add(BinaryOperation(binaryOp.operation, rSimilar, lSimilar));
+        }
+        // Асоціативний
+        if (lSimilar is BinaryOperation) {
+          if (lSimilar.operation == binaryOp.operation &&
+              (lSimilar.operation == "+" || lSimilar.operation == "*")) {
+            res.add(
+              BinaryOperation(
+                lSimilar.operation,
+                lSimilar.left,
+                BinaryOperation(
+                  binaryOp.operation,
+                  lSimilar.right,
+                  rSimilar,
+                ),
+              ),
+            );
+          }
+        }
+        if (rSimilar is BinaryOperation) {
+          if (rSimilar.operation == binaryOp.operation &&
+              (rSimilar.operation == "+" || rSimilar.operation == "*")) {
+            res.add(
+              BinaryOperation(
+                rSimilar.operation,
+                BinaryOperation(
+                  binaryOp.operation,
+                  lSimilar,
+                  rSimilar.left,
+                ),
+                rSimilar.right,
+              ),
+            );
+          }
+        }
+      }
+    }
+
+    return res;
+  }
+
+  Set<Call> _genSimilarCall(Call call) {
+    throw UnimplementedError();
+  }
+
+  Set<Numconst> _genSimilarNumconst(Numconst numconst) {
+    return {numconst};
+  }
+
+  Set<UnaryOperation> _genSimilarUnaryOp(UnaryOperation unaryOp) {
+    return genSimilar(unaryOp.expression)
+        .map(
+          (e) => UnaryOperation(unaryOp.operation, e),
+        )
+        .toSet();
+  }
+
+  Set<Variable> _genSimilarVariable(Variable variable) {
+    return {variable};
+  }
 }

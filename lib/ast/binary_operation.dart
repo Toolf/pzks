@@ -54,4 +54,15 @@ class BinaryOperation implements Expression {
         "\n" +
         content.join("\n");
   }
+
+  @override
+  int get hashCode => left.hashCode ^ right.hashCode ^ operation.hashCode;
+
+  @override
+  bool operator ==(Object other) {
+    if (other is! BinaryOperation) return false;
+    return other.operation == operation &&
+        other.left == left &&
+        other.right == right;
+  }
 }
