@@ -256,23 +256,73 @@ class Parser {
   }
 
   Expression _parseExpression() {
-    var l = _parseMulExpression();
+    final binOps = [_parseMulExpression()];
+    final operations = <String>[];
     while (sumOp.contains(_lexer.peek().tag)) {
       final op = _lexer.nextToken().value;
       final r = _parseMulExpression();
-      l = BinaryOperation(op, l, r);
+      operations.add(op);
+      binOps.add(r);
     }
-    return l;
+    return _minimizeBinOp(binOps, operations);
   }
 
   Expression _parseMulExpression() {
-    var l = _parseUnaryExpression();
+    final binOps = [_parseUnaryExpression()];
+    final operations = <String>[];
     while (mulOp.contains(_lexer.peek().tag)) {
       final op = _lexer.nextToken().value;
       final r = _parseUnaryExpression();
-      l = BinaryOperation(op, l, r);
+      operations.add(op);
+      binOps.add(r);
     }
-    return l;
+    return _minimizeBinOp(binOps, operations);
+  }
+
+  Expression _minimizeBinOp(
+    List<Expression> binaryOperations,
+    List<String> operations,
+  ) {
+    if (binaryOperations.length == 1) return binaryOperations[0];
+    final binOp = _buildBinaryTree(binaryOperations, operations);
+    return _normalizeBinaryTree(binOp as BinaryOperation);
+  }
+
+  Expression _buildBinaryTree(
+    List<Expression> binaryOperations,
+    List<String> operations,
+  ) {
+    if (binaryOperations.length == 1) return binaryOperations[0];
+    final lSize = binaryOperations.length ~/ 2;
+    return BinaryOperation(
+      operations[lSize - 1],
+      _buildBinaryTree(
+        binaryOperations.sublist(0, lSize),
+        operations.sublist(0, lSize - 1),
+      ),
+      _buildBinaryTree(
+        binaryOperations.sublist(lSize),
+        operations.sublist(lSize),
+      ),
+    );
+  }
+
+  BinaryOperation _normalizeBinaryTree(BinaryOperation binayOp) {
+    var left = binayOp.left;
+    var right = binayOp.right;
+    if (left is BinaryOperation) {
+      left = _normalizeBinaryTree(left);
+    }
+    if (right is BinaryOperation) {
+      right = _normalizeBinaryTree(right);
+      if (binayOp.operation == "/" && right.operation == "/") {
+        right = BinaryOperation("*", right.left, right.right);
+      }
+      if (binayOp.operation == "-" && right.operation == "-") {
+        right = BinaryOperation("+", right.left, right.right);
+      }
+    }
+    return BinaryOperation(binayOp.operation, left, right);
   }
 
   Expression _parseUnaryExpression() {

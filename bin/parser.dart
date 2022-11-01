@@ -1,8 +1,5 @@
 import 'dart:io';
 
-import 'package:pzks/ast/binary_operation.dart';
-import 'package:pzks/ast/numconst.dart';
-import 'package:pzks/ast/unary_operation.dart';
 import 'package:pzks/pzks.dart';
 
 main() {
