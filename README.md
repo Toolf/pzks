@@ -36,13 +36,27 @@ args = expr (',' expr)*
 ```
 
 
-Комутативне і асоціативне
+Комутативність
 a*b=b*a
 a+b=b+a
+
+Асоціативність
+a*(b*c) = (a*b)*c
 (a*b)*c = a*(b*c)
+a+(b+c) = (a+b)+c
 (a+b)+c = a+(b+c)
 
+Дистрибутивність
+(a+b)*c = a*b+a*c
+(a-b)*c = a*b-a*c
+a*(b+c) = a*b+a*c
+a*(b-c) = a*b-a*c
 a*b+a*c = a*(b+c)
+a*b-a*c = a*(b-c)
+
+Розкритя/Добавлення дужок
+a*b+a*c = a*(b+c)
+a*b-a*c = a*(b-c)
 
 dateflow
 + 1

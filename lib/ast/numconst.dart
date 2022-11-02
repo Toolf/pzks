@@ -1,6 +1,6 @@
 import 'expression.dart';
 
-class Numconst implements Expression {
+class Numconst extends Expression {
   final double value;
 
   Numconst(this.value);
@@ -11,11 +11,16 @@ class Numconst implements Expression {
   }
 
   @override
-  int get hashCode => value.hashCode;
+  String toSimpleString() {
+    return "$value";
+  }
 
   @override
   bool operator ==(Object other) {
     if (other is! Numconst) return false;
-    return other.value == value;
+    return other.toSimpleString() == toSimpleString();
   }
+
+  @override
+  int get cost => 0;
 }

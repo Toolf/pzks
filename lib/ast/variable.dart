@@ -1,6 +1,6 @@
 import 'package:pzks/ast/expression.dart';
 
-class Variable implements Expression {
+class Variable extends Expression {
   final String identifier;
 
   Variable(this.identifier);
@@ -11,11 +11,16 @@ class Variable implements Expression {
   }
 
   @override
-  int get hashCode => identifier.hashCode;
+  String toSimpleString() {
+    return identifier;
+  }
 
   @override
   bool operator ==(Object other) {
     if (other is! Variable) return false;
-    return other.identifier == identifier;
+    return other.toSimpleString() == toSimpleString();
   }
+
+  @override
+  int get cost => 0;
 }

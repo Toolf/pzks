@@ -1,7 +1,7 @@
 import 'package:pzks/ast/expression.dart';
 import 'package:pzks/pzks.dart';
 
-class UnaryOperation implements Expression {
+class UnaryOperation extends Expression {
   final String operation;
   final Expression expression;
 
@@ -15,11 +15,20 @@ class UnaryOperation implements Expression {
   }
 
   @override
-  int get hashCode => expression.hashCode ^ operation.hashCode;
+  String toSimpleString() {
+    return "$operation${expression.toSimpleString()}";
+  }
 
   @override
   bool operator ==(Object other) {
     if (other is! UnaryOperation) return false;
-    return other.expression == expression && other.operation == operation;
+    return other.toSimpleString() == toSimpleString();
   }
+
+  int operationCost(String operation) {
+    return 1;
+  }
+
+  @override
+  int get cost => expression.cost + operationCost(operation);
 }

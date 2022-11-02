@@ -2,6 +2,8 @@ import 'package:pzks/ast/binary_operation.dart';
 import 'package:pzks/ast/numconst.dart';
 import 'package:pzks/ast/unary_operation.dart';
 
+import 'package:collection/collection.dart';
+
 import 'ast/call.dart';
 import 'ast/expression.dart';
 import 'ast/variable.dart';
@@ -285,44 +287,60 @@ class Parser {
   ) {
     if (binaryOperations.length == 1) return binaryOperations[0];
     final binOp = _buildBinaryTree(binaryOperations, operations);
-    return _normalizeBinaryTree(binOp as BinaryOperation);
+    return binOp;
   }
 
   Expression _buildBinaryTree(
     List<Expression> binaryOperations,
-    List<String> operations,
-  ) {
+    List<String> operations, [
+    bool invert = false,
+  ]) {
+    final invertOperations = {
+      "*": "/",
+      "/": "*",
+      "+": "-",
+      "-": "+",
+    };
     if (binaryOperations.length == 1) return binaryOperations[0];
-    final lSize = binaryOperations.length ~/ 2;
+    if (binaryOperations.length == 2) {
+      return BinaryOperation(
+        invert ? invertOperations[operations[0]]! : operations[0],
+        binaryOperations[0],
+        binaryOperations[1],
+      );
+    }
+    var lSize = 1;
+    var lCost = binaryOperations[0].cost;
+    var rCost = binaryOperations.skip(1).map((b) => b.cost).sum +
+        operations.map((o) => BinaryOperation.operationCost(o)).sum;
+    for (int i = 1; i < binaryOperations.length; i++) {
+      final bCost = binaryOperations[i].cost +
+          BinaryOperation.operationCost(operations[i - 1]);
+      if (lCost + bCost >= rCost) {
+        break;
+      }
+      lSize++;
+      lCost += bCost;
+      rCost -= bCost;
+    }
+
+    final op = invert
+        ? invertOperations[operations[lSize - 1]]!
+        : operations[lSize - 1];
+    bool childInvert = invert ^ (op == "-" || op == '/');
     return BinaryOperation(
-      operations[lSize - 1],
+      op,
       _buildBinaryTree(
         binaryOperations.sublist(0, lSize),
         operations.sublist(0, lSize - 1),
+        invert,
       ),
       _buildBinaryTree(
         binaryOperations.sublist(lSize),
         operations.sublist(lSize),
+        childInvert,
       ),
     );
-  }
-
-  BinaryOperation _normalizeBinaryTree(BinaryOperation binayOp) {
-    var left = binayOp.left;
-    var right = binayOp.right;
-    if (left is BinaryOperation) {
-      left = _normalizeBinaryTree(left);
-    }
-    if (right is BinaryOperation) {
-      right = _normalizeBinaryTree(right);
-      if (binayOp.operation == "/" && right.operation == "/") {
-        right = BinaryOperation("*", right.left, right.right);
-      }
-      if (binayOp.operation == "-" && right.operation == "-") {
-        right = BinaryOperation("+", right.left, right.right);
-      }
-    }
-    return BinaryOperation(binayOp.operation, left, right);
   }
 
   Expression _parseUnaryExpression() {
@@ -411,35 +429,126 @@ class Parser {
         if (lSimilar is BinaryOperation) {
           if (lSimilar.operation == binaryOp.operation &&
               (lSimilar.operation == "+" || lSimilar.operation == "*")) {
-            res.add(
-              BinaryOperation(
-                lSimilar.operation,
-                lSimilar.left,
-                BinaryOperation(
-                  binaryOp.operation,
-                  lSimilar.right,
-                  rSimilar,
-                ),
-              ),
+            final r = BinaryOperation(
+              binaryOp.operation,
+              lSimilar.right,
+              rSimilar,
             );
+            for (var newRSimilar in genSimilar(r)) {
+              res.add(
+                BinaryOperation(
+                  lSimilar.operation,
+                  lSimilar.left,
+                  newRSimilar,
+                ),
+              );
+            }
           }
         }
         if (rSimilar is BinaryOperation) {
           if (rSimilar.operation == binaryOp.operation &&
               (rSimilar.operation == "+" || rSimilar.operation == "*")) {
-            res.add(
-              BinaryOperation(
-                rSimilar.operation,
-                BinaryOperation(
-                  binaryOp.operation,
-                  lSimilar,
-                  rSimilar.left,
-                ),
-                rSimilar.right,
-              ),
+            final l = BinaryOperation(
+              binaryOp.operation,
+              lSimilar,
+              rSimilar.left,
             );
+            for (var newLSimilar in genSimilar(l)) {
+              res.add(
+                BinaryOperation(
+                  rSimilar.operation,
+                  newLSimilar,
+                  rSimilar.right,
+                ),
+              );
+            }
           }
         }
+        // Розкритя дужок
+        if (binaryOp.operation == "*" &&
+            rSimilar is BinaryOperation &&
+            (rSimilar.operation == "+" || rSimilar.operation == "-")) {
+          final newL = BinaryOperation(
+            binaryOp.operation,
+            lSimilar,
+            rSimilar.left,
+          );
+          final newR = BinaryOperation(
+            binaryOp.operation,
+            lSimilar,
+            rSimilar.right,
+          );
+          for (var newLSimilar in genSimilar(newL)) {
+            for (var newRSimilar in genSimilar(newR)) {
+              res.add(
+                BinaryOperation(
+                  rSimilar.operation,
+                  newLSimilar,
+                  newRSimilar,
+                ),
+              );
+            }
+          }
+        }
+        // Добавлення дужок
+        // if ((binaryOp.operation == "+" || binaryOp.operation == '-') &&
+        //     rSimilar is BinaryOperation &&
+        //     rSimilar.operation == "*" &&
+        //     lSimilar is BinaryOperation &&
+        //     lSimilar.operation == "*") {
+        //   if (rSimilar.left == lSimilar.left) {
+        //     res.add(
+        //       BinaryOperation(
+        //         rSimilar.operation,
+        //         rSimilar.left,
+        //         BinaryOperation(
+        //           binaryOp.operation,
+        //           rSimilar.right,
+        //           lSimilar.right,
+        //         ),
+        //       ),
+        //     );
+        //   }
+        //   if (rSimilar.left == lSimilar.right) {
+        //     res.add(
+        //       BinaryOperation(
+        //         rSimilar.operation,
+        //         rSimilar.left,
+        //         BinaryOperation(
+        //           binaryOp.operation,
+        //           rSimilar.right,
+        //           lSimilar.left,
+        //         ),
+        //       ),
+        //     );
+        //   }
+        //   if (rSimilar.right == lSimilar.left) {
+        //     res.add(
+        //       BinaryOperation(
+        //         rSimilar.operation,
+        //         rSimilar.right,
+        //         BinaryOperation(
+        //           binaryOp.operation,
+        //           rSimilar.left,
+        //           lSimilar.right,
+        //         ),
+        //       ),
+        //     );
+        //   }
+        //   if (rSimilar.right == lSimilar.right) {
+        //     res.add(
+        //       BinaryOperation(
+        //         rSimilar.operation,
+        //         rSimilar.right,
+        //         BinaryOperation(
+        //           binaryOp.operation,
+        //           rSimilar.left,
+        //           lSimilar.left,
+        //         ),
+        //       ),
+        //     );
+        //   }
+        // }
       }
     }
 

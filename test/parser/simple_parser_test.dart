@@ -209,4 +209,49 @@ void main() {
       expect(parser.errors, expectedErrors);
     });
   });
+  group("Binary operation invarsion for best tree height", () {
+    test('a-(b+c)', () {
+      // arrange
+      final expression = "a-(b+c)";
+      // act
+      final parser = Parser(expression);
+      final expr = parser.parse();
+      // assert
+      final expectedExpression = "a-(b+c)";
+      expect(expr.toSimpleString(), expectedExpression);
+    });
+
+    test('a-b-c-d', () {
+      // arrange
+      final expression = "a-b-c-d";
+      // act
+      final parser = Parser(expression);
+      final expr = parser.parse();
+      // assert
+      final expectedExpression = "a-b-(c+d)";
+      expect(expr.toSimpleString(), expectedExpression);
+    });
+
+    test('a-b-(c-d)', () {
+      // arrange
+      final expression = "a-b-(c-d)";
+      // act
+      final parser = Parser(expression);
+      final expr = parser.parse();
+      // assert
+      final expectedExpression = "a-b-(c-d)";
+      expect(expr.toSimpleString(), expectedExpression);
+    });
+
+    test('a/b/c/d/e/f/g/h', () {
+      // arrange
+      final expression = "a/b/c/d/e/f/g/h";
+      // act
+      final parser = Parser(expression);
+      final expr = parser.parse();
+      // assert
+      final expectedExpression = "a/b/(c*d)/(e*f*g*h)";
+      expect(expr.toSimpleString(), expectedExpression);
+    });
+  });
 }

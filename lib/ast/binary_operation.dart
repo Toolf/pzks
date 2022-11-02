@@ -6,12 +6,34 @@ import 'package:pzks/ast/expression.dart';
 
 import '../helper.dart';
 
-class BinaryOperation implements Expression {
+class BinaryOperation extends Expression {
   final Expression left;
   final Expression right;
   final String operation;
 
   BinaryOperation(this.operation, this.left, this.right);
+
+  @override
+  String toSimpleString() {
+    var lString = left.toSimpleString();
+    var rString = right.toSimpleString();
+
+    if (right is BinaryOperation) {
+      final r = (right as BinaryOperation);
+      if ((operation == "/" || operation == "*") &&
+          (r.operation == '+' || (r).operation == '-')) {
+        rString = "($rString)";
+      } else if ((operation == "/" && (r).operation != "/")) {
+        rString = "($rString)";
+      } else if (operation == "-") {
+        rString = "($rString)";
+      }
+    }
+
+    return brakets
+        ? "($lString$operation$rString)"
+        : "$lString$operation$rString";
+  }
 
   @override
   String toString() {
@@ -56,13 +78,17 @@ class BinaryOperation implements Expression {
   }
 
   @override
-  int get hashCode => left.hashCode ^ right.hashCode ^ operation.hashCode;
-
-  @override
   bool operator ==(Object other) {
     if (other is! BinaryOperation) return false;
     return other.operation == operation &&
         other.left == left &&
         other.right == right;
   }
+
+  static int operationCost(String operation) {
+    return 1;
+  }
+
+  @override
+  int get cost => max(left.cost, right.cost) + operationCost(operation);
 }
