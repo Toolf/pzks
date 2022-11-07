@@ -16,9 +16,12 @@ class Variable extends Expression {
   }
 
   @override
+  int get hashCode => identifier.hashCode;
+
+  @override
   bool operator ==(Object other) {
     if (other is! Variable) return false;
-    return other.toSimpleString() == toSimpleString();
+    return other.identifier == identifier;
   }
 
   @override

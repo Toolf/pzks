@@ -27,8 +27,11 @@ class Call extends Expression {
   }
 
   @override
+  int get hashCode => identifier.hashCode ^ args.hashCode;
+
+  @override
   bool operator ==(Object other) {
     if (other is! Call) return false;
-    return other.toSimpleString() == toSimpleString();
+    return other.identifier == identifier && other.args == args;
   }
 }

@@ -16,9 +16,12 @@ class Numconst extends Expression {
   }
 
   @override
+  int get hashCode => value.hashCode;
+
+  @override
   bool operator ==(Object other) {
     if (other is! Numconst) return false;
-    return other.toSimpleString() == toSimpleString();
+    return other.value == value;
   }
 
   @override

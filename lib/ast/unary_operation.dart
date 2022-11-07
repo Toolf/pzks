@@ -20,9 +20,12 @@ class UnaryOperation extends Expression {
   }
 
   @override
+  int get hashCode => operation.hashCode ^ expression.hashCode;
+
+  @override
   bool operator ==(Object other) {
     if (other is! UnaryOperation) return false;
-    return other.toSimpleString() == toSimpleString();
+    return other.operation == operation && other.expression == expression;
   }
 
   int operationCost(String operation) {

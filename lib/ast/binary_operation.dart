@@ -78,6 +78,9 @@ class BinaryOperation extends Expression {
   }
 
   @override
+  int get hashCode => operation.hashCode ^ left.hashCode ^ right.hashCode;
+
+  @override
   bool operator ==(Object other) {
     if (other is! BinaryOperation) return false;
     return other.operation == operation &&
