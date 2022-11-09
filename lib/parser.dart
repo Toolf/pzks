@@ -397,181 +397,146 @@ class Parser {
     return args;
   }
 
-  Set<Expression> genSimilar(Expression expr) {
-    switch (expr.runtimeType) {
-      case BinaryOperation:
-        return _genSimilarBinaryOp(expr as BinaryOperation);
-      case Call:
-        return _genSimilarCall(expr as Call);
-      case Numconst:
-        return _genSimilarNumconst(expr as Numconst);
-      case UnaryOperation:
-        return _genSimilarUnaryOp(expr as UnaryOperation);
-      case Variable:
-        return _genSimilarVariable(expr as Variable);
-    }
-    return {expr};
+  Set<String> genSimilar() {
+    _lexer.reset();
+    return _genSimilar();
   }
 
-  Set<BinaryOperation> _genSimilarBinaryOp(BinaryOperation binaryOp) {
-    final lSimilars = genSimilar(binaryOp.left);
-    final rSimilars = genSimilar(binaryOp.right);
-
-    final res = <BinaryOperation>{};
-    for (var lSimilar in lSimilars) {
-      for (var rSimilar in rSimilars) {
-        res.add(BinaryOperation(binaryOp.operation, lSimilar, rSimilar));
-        // Комутативний
-        if (binaryOp.operation == '+' || binaryOp.operation == '*') {
-          res.add(BinaryOperation(binaryOp.operation, rSimilar, lSimilar));
-        }
-        // Асоціативний
-        if (lSimilar is BinaryOperation) {
-          if (lSimilar.operation == binaryOp.operation &&
-              (lSimilar.operation == "+" || lSimilar.operation == "*")) {
-            final r = BinaryOperation(
-              binaryOp.operation,
-              lSimilar.right,
-              rSimilar,
-            );
-            for (var newRSimilar in genSimilar(r)) {
-              res.add(
-                BinaryOperation(
-                  lSimilar.operation,
-                  lSimilar.left,
-                  newRSimilar,
-                ),
-              );
-            }
-          }
-        }
-        if (rSimilar is BinaryOperation) {
-          if (rSimilar.operation == binaryOp.operation &&
-              (rSimilar.operation == "+" || rSimilar.operation == "*")) {
-            final l = BinaryOperation(
-              binaryOp.operation,
-              lSimilar,
-              rSimilar.left,
-            );
-            for (var newLSimilar in genSimilar(l)) {
-              res.add(
-                BinaryOperation(
-                  rSimilar.operation,
-                  newLSimilar,
-                  rSimilar.right,
-                ),
-              );
-            }
-          }
-        }
-        // Розкритя дужок
-        if (binaryOp.operation == "*" &&
-            rSimilar is BinaryOperation &&
-            (rSimilar.operation == "+" || rSimilar.operation == "-")) {
-          final newL = BinaryOperation(
-            binaryOp.operation,
-            lSimilar,
-            rSimilar.left,
-          );
-          final newR = BinaryOperation(
-            binaryOp.operation,
-            lSimilar,
-            rSimilar.right,
-          );
-          for (var newLSimilar in genSimilar(newL)) {
-            for (var newRSimilar in genSimilar(newR)) {
-              res.add(
-                BinaryOperation(
-                  rSimilar.operation,
-                  newLSimilar,
-                  newRSimilar,
-                ),
-              );
-            }
-          }
-        }
-        // Добавлення дужок
-        // if ((binaryOp.operation == "+" || binaryOp.operation == '-') &&
-        //     rSimilar is BinaryOperation &&
-        //     rSimilar.operation == "*" &&
-        //     lSimilar is BinaryOperation &&
-        //     lSimilar.operation == "*") {
-        //   if (rSimilar.left == lSimilar.left) {
-        //     res.add(
-        //       BinaryOperation(
-        //         rSimilar.operation,
-        //         rSimilar.left,
-        //         BinaryOperation(
-        //           binaryOp.operation,
-        //           rSimilar.right,
-        //           lSimilar.right,
-        //         ),
-        //       ),
-        //     );
-        //   }
-        //   if (rSimilar.left == lSimilar.right) {
-        //     res.add(
-        //       BinaryOperation(
-        //         rSimilar.operation,
-        //         rSimilar.left,
-        //         BinaryOperation(
-        //           binaryOp.operation,
-        //           rSimilar.right,
-        //           lSimilar.left,
-        //         ),
-        //       ),
-        //     );
-        //   }
-        //   if (rSimilar.right == lSimilar.left) {
-        //     res.add(
-        //       BinaryOperation(
-        //         rSimilar.operation,
-        //         rSimilar.right,
-        //         BinaryOperation(
-        //           binaryOp.operation,
-        //           rSimilar.left,
-        //           lSimilar.right,
-        //         ),
-        //       ),
-        //     );
-        //   }
-        //   if (rSimilar.right == lSimilar.right) {
-        //     res.add(
-        //       BinaryOperation(
-        //         rSimilar.operation,
-        //         rSimilar.right,
-        //         BinaryOperation(
-        //           binaryOp.operation,
-        //           rSimilar.left,
-        //           lSimilar.left,
-        //         ),
-        //       ),
-        //     );
-        //   }
-        // }
-      }
+  Set<String> _genSimilar() {
+    final binOps = [_genSimilarMulExpression()];
+    final operations = <String>[];
+    while (sumOp.contains(_lexer.peek().tag)) {
+      final op = _lexer.nextToken().value;
+      final r = _genSimilarMulExpression();
+      operations.add(op);
+      binOps.add(r);
     }
+    return _genSimilarBinOp(binOps, operations);
+  }
 
+  Set<String> _genSimilarMulExpression() {
+    final binOps = [_genSimilarUnaryOp()];
+    final operations = <String>[];
+    while (mulOp.contains(_lexer.peek().tag)) {
+      final op = _lexer.nextToken().value;
+      final r = _genSimilarUnaryOp();
+      operations.add(op);
+      binOps.add(r);
+    }
+    return _genSimilarBinOp(binOps, operations);
+  }
+
+  Set<String> _genSimilarBinOp(
+      List<Set<String>> binOp, List<String> operations) {
+    if (binOp.length == 1) return binOp[0];
+    final invertOperations = {
+      "*": "/",
+      "/": "*",
+      "+": "-",
+      "-": "+",
+    };
+    final baseOperation = operations.first == "+" || operations.first == "*"
+        ? operations.first
+        : invertOperations[operations.first]!;
+    operations = [baseOperation, ...operations];
+
+    final pairs = [
+      ...IterableZip([operations, binOp])
+    ];
+
+    final combinations = _combinations(pairs);
+
+    final res = <String>{};
+    for (final combo in combinations) {
+      if (combo.first[0] == "/" || combo.first[0] == "-") continue;
+      final withOp = combo
+          .map((pair) =>
+              (pair[1] as Set<String>).map((b) => "${pair[0]}$b").toSet())
+          .toList();
+      withOp[0] = combo[0][1];
+
+      var results = [...withOp[0]];
+
+      for (final nextSimilars in withOp.skip(1)) {
+        final nextRes = <String>[];
+        for (final similar in nextSimilars) {
+          for (var res in results) {
+            nextRes.add("$res$similar");
+          }
+        }
+        results = nextRes;
+      }
+      res.addAll(results);
+    }
     return res;
   }
 
-  Set<Call> _genSimilarCall(Call call) {
-    throw UnimplementedError();
+  List<List<dynamic>> _combinations(List<dynamic> collection) {
+    if (collection.length == 1) return [collection];
+    final res = <List<dynamic>>[];
+    for (var element in collection) {
+      final removeItemCollection = [...collection];
+      removeItemCollection.remove(element);
+      res.addAll(
+        _combinations(removeItemCollection).map(
+          (r) => [element, ...r],
+        ),
+      );
+    }
+    return res;
   }
 
-  Set<Numconst> _genSimilarNumconst(Numconst numconst) {
-    return {numconst};
+  Set<String> _genSimilarUnaryOp() {
+    if (unaryOp.contains(_lexer.peek().tag)) {
+      final op = _lexer.nextToken().value;
+      final unaryExpr = _genSimilarUnaryOp();
+      return unaryExpr.map((e) => "$op$unaryExpr").toSet();
+    } else {
+      final factor = _genSimilarFactor();
+      return factor;
+    }
   }
 
-  Set<UnaryOperation> _genSimilarUnaryOp(UnaryOperation unaryOp) {
-    return genSimilar(unaryOp.expression)
-        .map(
-          (e) => UnaryOperation(unaryOp.operation, e),
-        )
-        .toSet();
+  Set<String> _genSimilarFactor() {
+    var peek = _lexer.peek();
+    if (peek.tag == TokenTag.LPAR) {
+      _lexer.nextToken();
+      final expr = _genSimilar();
+      _lexer.nextToken();
+      return expr.map((e) => "($e)").toSet();
+    }
+    if (peek.tag == TokenTag.ID) {
+      final callOrId = _genSimilarCallOrId();
+      return callOrId;
+    }
+    if (peek.tag == TokenTag.NUMCONST) {
+      final numconst = _lexer.nextToken().value;
+      return {numconst};
+    }
+    throw Exception("Expected invalid validation");
   }
 
-  Set<Variable> _genSimilarVariable(Variable variable) {
-    return {variable};
+  Set<String> _genSimilarCallOrId() {
+    final identifier = _lexer.nextToken().value;
+    if (_isFunctionName(identifier)) {
+      _lexer.nextToken();
+      var args = <String>{};
+      if (_lexer.peek().tag != TokenTag.RPAR) {
+        args = _genSimilarArgs();
+      }
+
+      _lexer.nextToken();
+      return args.map((e) => "$identifier($e)").toSet();
+    }
+    return {identifier};
+  }
+
+  Set<String> _genSimilarArgs() {
+    final args = _genSimilar();
+    while (_lexer.peek().tag == TokenTag.COMMA) {
+      _lexer.nextToken();
+      args.addAll(_genSimilar());
+    }
+    return args;
   }
 }

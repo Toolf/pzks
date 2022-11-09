@@ -24,14 +24,11 @@ main() {
       print("Errors not found");
       final expr = parser.parse();
       print(expr);
-      final exprs = parser.genSimilar(expr);
-      final uniqueExpr = exprs.map((e) => e.toSimpleString()).toSet();
-      for (var expr in uniqueExpr) {
+      final exprs = parser.genSimilar();
+      for (var expr in exprs) {
         print(expr);
       }
-      print(
-        "Binary trees: ${exprs.length}; Expressions: ${uniqueExpr.length};",
-      );
+      print("Expressions: ${exprs.length};");
     }
   } on LexerException catch (e) {
     // only for development needs
