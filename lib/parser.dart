@@ -72,8 +72,9 @@ class Parser {
   final errors = [];
 
   final List<FunctionDeclaration> functions;
-
-  Parser(this.code, [this.functions = const []]) : _lexer = Lexer(code);
+  final Map<String, int> executionTimes;
+  Parser(this.code, this.executionTimes, [this.functions = const []])
+      : _lexer = Lexer(code);
 
   validate() {
     _lexer.reset();
@@ -307,15 +308,16 @@ class Parser {
         invert ? invertOperations[operations[0]]! : operations[0],
         binaryOperations[0],
         binaryOperations[1],
+        executionTimes,
       );
     }
     var lSize = 1;
     var lCost = binaryOperations[0].cost;
     var rCost = binaryOperations.skip(1).map((b) => b.cost).sum +
-        operations.map((o) => BinaryOperation.operationCost(o)).sum;
+        operations.map((o) => executionTimes[o]!).sum;
     for (int i = 1; i < binaryOperations.length; i++) {
-      final bCost = binaryOperations[i].cost +
-          BinaryOperation.operationCost(operations[i - 1]);
+      final bCost =
+          binaryOperations[i].cost + executionTimes[operations[i - 1]]!;
       if (lCost + bCost >= rCost) {
         break;
       }
@@ -340,6 +342,7 @@ class Parser {
         operations.sublist(lSize),
         childInvert,
       ),
+      executionTimes,
     );
   }
 
@@ -435,40 +438,74 @@ class Parser {
       "+": "-",
       "-": "+",
     };
+    final res = <String>{};
+
     final baseOperation = operations.first == "+" || operations.first == "*"
         ? operations.first
         : invertOperations[operations.first]!;
     operations = [baseOperation, ...operations];
 
-    final pairs = [
-      ...IterableZip([operations, binOp])
-    ];
+    // Асоціативність
+    res.addAll(_flatten(binOp, operations));
 
-    final combinations = _combinations(pairs);
+    // Комутативність
+    // final pairs = [
+    //   ...IterableZip([operations, binOp])
+    // ];
 
-    final res = <String>{};
-    for (final combo in combinations) {
-      if (combo.first[0] == "/" || combo.first[0] == "-") continue;
-      final withOp = combo
-          .map((pair) =>
-              (pair[1] as Set<String>).map((b) => "${pair[0]}$b").toSet())
-          .toList();
-      withOp[0] = combo[0][1];
+    // final combinations = _combinations(pairs);
 
-      var results = [...withOp[0]];
+    // for (final combo in combinations) {
+    //   if (combo.first[0] == "/" || combo.first[0] == "-") continue;
+    //   final withOp = combo
+    //       .map((pair) =>
+    //           (pair[1] as Set<String>).map((b) => "${pair[0]}$b").toSet())
+    //       .toList();
+    //   withOp[0] = combo[0][1];
 
-      for (final nextSimilars in withOp.skip(1)) {
-        final nextRes = <String>[];
-        for (final similar in nextSimilars) {
-          for (var res in results) {
-            nextRes.add("$res$similar");
+    //   var results = [...withOp[0]];
+
+    //   for (final nextSimilars in withOp.skip(1)) {
+    //     final nextRes = <String>[];
+    //     for (final similar in nextSimilars) {
+    //       for (var res in results) {
+    //         nextRes.add("$res$similar");
+    //       }
+    //     }
+    //     results = nextRes;
+    //   }
+    //   res.addAll(results);
+    // }
+
+    return res;
+  }
+
+  Set<String> _flatten(List<Set<String>> binOp, List<String> operations) {
+    canBeFlatten(s) => s[0] == '(';
+
+    final asociateBinOp = binOp
+        .map((b) => b.any(canBeFlatten) ? b : b.where(canBeFlatten).toList());
+    for (var i = 1; i < binOp.length - 1; i++) {
+      final prev = binOp[i - 1];
+      final curr = binOp[i];
+      final next = binOp[i + 1];
+      final prevOp = operations[i - 1];
+      final nextOp = operations[i];
+      for (var prevBinOp in prev) {
+        for (var currBinOp in curr) {
+          for (var nextBinOp in next) {
+            if (canBeFlatten(curr)) {
+              final op = <Set<String>>[
+                {currBinOp}
+              ];
+              currBinOp = _flatten(op, []).single; // can faild! __check__
+            }
+            if (prevOp == '-') {}
           }
         }
-        results = nextRes;
       }
-      res.addAll(results);
     }
-    return res;
+    return {};
   }
 
   List<List<dynamic>> _combinations(List<dynamic> collection) {

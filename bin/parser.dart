@@ -11,8 +11,14 @@ main() {
   }
 
   try {
+    final executionTimes = {
+      "*": 1,
+      "/": 1,
+      "-": 1,
+      "+": 1,
+    };
     // Парсинг визару
-    final parser = Parser(code);
+    final parser = Parser(code, executionTimes);
     parser.validate();
 
     // Вивід помилок

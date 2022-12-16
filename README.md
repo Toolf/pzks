@@ -45,14 +45,14 @@ a*(b*c) = (a*b)*c
 (a*b)*c = a*(b*c)
 a+(b+c) = (a+b)+c
 (a+b)+c = a+(b+c)
+a*b+a*c = a*(b+c)
+a*b-a*c = a*(b-c)
 
 Дистрибутивність
 (a+b)*c = a*b+a*c
 (a-b)*c = a*b-a*c
 a*(b+c) = a*b+a*c
 a*(b-c) = a*b-a*c
-a*b+a*c = a*(b+c)
-a*b-a*c = a*(b-c)
 
 Розкритя/Добавлення дужок
 a*b+a*c = a*(b+c)

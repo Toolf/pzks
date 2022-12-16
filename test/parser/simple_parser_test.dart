@@ -2,12 +2,18 @@ import 'package:pzks/parser.dart';
 import 'package:test/test.dart';
 
 void main() {
+  final executionTimes = {
+    "*": 1,
+    "/": 1,
+    "-": 1,
+    "+": 1,
+  };
   group("Error on the start of expression", () {
     test('Expression cannot start with close braket', () {
       // arrange
       final expression = ")5+3";
       // act
-      final parser = Parser(expression);
+      final parser = Parser(expression, executionTimes);
       parser.validate();
       // assert
       final expectedErrors = [
@@ -20,7 +26,7 @@ void main() {
       // arrange
       final expression = "*5+3";
       // act
-      final parser = Parser(expression);
+      final parser = Parser(expression, executionTimes);
       parser.validate();
       // assert
       final expectedErrors = [
@@ -33,7 +39,7 @@ void main() {
       // arrange
       final expression = "/5+3";
       // act
-      final parser = Parser(expression);
+      final parser = Parser(expression, executionTimes);
       parser.validate();
       // assert
       final expectedErrors = [
@@ -49,7 +55,7 @@ void main() {
       final expression = "test(arg1, arg2)";
       final functions = <FunctionDeclaration>[];
       // act
-      final parser = Parser(expression, functions);
+      final parser = Parser(expression, executionTimes, functions);
       parser.validate();
       // assert
       final expectedErrors = [
@@ -76,7 +82,7 @@ void main() {
         ),
       ];
       // act
-      final parser = Parser(expression, functions);
+      final parser = Parser(expression, executionTimes, functions);
       parser.validate();
       // assert
       final expectedErrors = [];
@@ -87,7 +93,7 @@ void main() {
       // arrange
       final expression = "3args";
       // act
-      final parser = Parser(expression);
+      final parser = Parser(expression, executionTimes);
       parser.validate();
       // assert
       final expectedErrors = [
@@ -106,7 +112,7 @@ void main() {
       // arrange
       final expression = "3.14.14";
       // act
-      final parser = Parser(expression);
+      final parser = Parser(expression, executionTimes);
       parser.validate();
       // assert
       final expectedErrors = [
@@ -134,7 +140,7 @@ void main() {
       // arrange
       final expression = "(a+3-7*2+2";
       // act
-      final parser = Parser(expression);
+      final parser = Parser(expression, executionTimes);
       parser.validate();
       // assert
       final expectedErrors = [SyntaxError("Expected ')'", 0, 10, 0, 10)];
@@ -147,7 +153,7 @@ void main() {
       // arrange
       final expression = "7**7";
       // act
-      final parser = Parser(expression);
+      final parser = Parser(expression, executionTimes);
       parser.validate();
       // assert
       final expectedErrors = [
@@ -160,7 +166,7 @@ void main() {
       // arrange
       final expression = "(7)(7)";
       // act
-      final parser = Parser(expression);
+      final parser = Parser(expression, executionTimes);
       parser.validate();
       // assert
       final expectedErrors = [SyntaxError("Expected operation", 0, 3, 0, 4)];
@@ -171,7 +177,7 @@ void main() {
       // arrange
       final expression = "(*3)";
       // act
-      final parser = Parser(expression);
+      final parser = Parser(expression, executionTimes);
       parser.validate();
       // assert
       final expectedErrors = [
@@ -186,7 +192,7 @@ void main() {
       // arrange
       final expression = "(b";
       // act
-      final parser = Parser(expression);
+      final parser = Parser(expression, executionTimes);
       parser.validate();
       // assert
       final expectedErrors = [
@@ -199,7 +205,7 @@ void main() {
       // arrange
       final expression = "()";
       // act
-      final parser = Parser(expression);
+      final parser = Parser(expression, executionTimes);
       parser.validate();
       // assert
       final expectedErrors = [
@@ -214,7 +220,7 @@ void main() {
       // arrange
       final expression = "a-(b+c)";
       // act
-      final parser = Parser(expression);
+      final parser = Parser(expression, executionTimes);
       final expr = parser.parse();
       // assert
       final expectedExpression = "a-(b+c)";
@@ -225,7 +231,7 @@ void main() {
       // arrange
       final expression = "a-b-c-d";
       // act
-      final parser = Parser(expression);
+      final parser = Parser(expression, executionTimes);
       final expr = parser.parse();
       // assert
       final expectedExpression = "a-b-(c+d)";
@@ -236,7 +242,7 @@ void main() {
       // arrange
       final expression = "a-b-(c-d)";
       // act
-      final parser = Parser(expression);
+      final parser = Parser(expression, executionTimes);
       final expr = parser.parse();
       // assert
       final expectedExpression = "a-b-(c-d)";
@@ -247,7 +253,7 @@ void main() {
       // arrange
       final expression = "a/b/c/d/e/f/g/h";
       // act
-      final parser = Parser(expression);
+      final parser = Parser(expression, executionTimes);
       final expr = parser.parse();
       // assert
       final expectedExpression = "a/b/(c*d)/(e*f*g*h)";

@@ -10,8 +10,9 @@ class BinaryOperation extends Expression {
   final Expression left;
   final Expression right;
   final String operation;
+  final Map<String, int> executionTimes;
 
-  BinaryOperation(this.operation, this.left, this.right);
+  BinaryOperation(this.operation, this.left, this.right, this.executionTimes);
 
   @override
   String toSimpleString() {
@@ -88,8 +89,8 @@ class BinaryOperation extends Expression {
         other.right == right;
   }
 
-  static int operationCost(String operation) {
-    return 1;
+  int operationCost(String operation) {
+    return executionTimes[operation]!;
   }
 
   @override
